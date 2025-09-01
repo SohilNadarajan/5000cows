@@ -123,6 +123,24 @@ export const useGameState = () => {
     }, 0);
   };
 
+  const getRandomUnfinishedLevel = (): number => {
+    if (!gameState) return 1;
+    
+    // Get all unfinished levels (not completed)
+    const unfinishedLevels = Object.values(gameState.levels)
+      .filter(level => !level.isCompleted)
+      .map(level => level.level);
+    
+    // If all levels are completed, return the current level
+    if (unfinishedLevels.length === 0) {
+      return gameState.currentLevel;
+    }
+    
+    // Return a random unfinished level
+    const randomIndex = Math.floor(Math.random() * unfinishedLevels.length);
+    return unfinishedLevels[randomIndex];
+  };
+
   return {
     gameState,
     isLoading,
@@ -134,5 +152,6 @@ export const useGameState = () => {
     getCompletedLevels,
     isGameComplete,
     getTotalCowsFound,
+    getRandomUnfinishedLevel,
   };
 };

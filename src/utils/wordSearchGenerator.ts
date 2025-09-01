@@ -32,6 +32,31 @@ export const generateWordSearchLegacy = (cowsToFind: number, gridSize: number): 
   return generateWordSearch(cowsToFind, gridSize, gridSize);
 };
 
+const forwardDirections = [
+  [0, 1],   // left → right
+  [1, 0],   // top → bottom
+  [1, 1],   // diagonal down-right
+  [-1, 1],  // diagonal up-right
+];
+
+const backwardDirections = [
+  [0, -1],  // right → left
+  [-1, 0],  // bottom → top
+  [-1, -1], // diagonal up-left
+  [1, -1],  // diagonal down-left
+];
+
+const getBiasedDirections = (): number[][] => {
+  const bias = Math.random();
+  if (bias < 0.75) {
+    // 75% chance: shuffle only forward directions
+    return [...forwardDirections].sort(() => Math.random() - 0.5);
+  } else {
+    // 25% chance: shuffle all directions
+    return [...forwardDirections, ...backwardDirections].sort(() => Math.random() - 0.5);
+  }
+};
+
 const attemptGridGeneration = (cowsToFind: number, width: number, height: number): string[][] => {
   const grid: string[][] = Array(height).fill(null).map(() => 
     Array(width).fill('')
@@ -83,9 +108,9 @@ const placeCowsIntelligently = (
   
   // Try to place COWs using different strategies
   const strategies = [
-    () => placeCowsWithSpacing(grid, cowsToFind, width, height, directions, allPositions),
-    () => placeCowsWithDirectionVariety(grid, cowsToFind, width, height, directions, allPositions),
-    () => placeCowsWithConflictAvoidance(grid, cowsToFind, width, height, directions, allPositions)
+    () => placeCowsWithSpacingBiased(grid, cowsToFind, width, height, directions, allPositions),
+    () => placeCowsWithDirectionVarietyBiased(grid, cowsToFind, width, height, directions, allPositions),
+    () => placeCowsWithConflictAvoidanceBiased(grid, cowsToFind, width, height, directions, allPositions)
   ];
   
   for (const strategy of strategies) {
@@ -142,6 +167,66 @@ const placeCowsWithSpacing = (
   return placedCows;
 };
 
+const placeCowsWithSpacingBiased = (
+  grid: string[][], 
+  cowsToFind: number, 
+  width: number, 
+  height: number, 
+  directions: number[][],
+  positions: { row: number; col: number }[]
+): number => {
+  let placedCows = 0;
+  const usedPositions = new Set<string>();
+
+  // Define weights for directions (same length as directions array)
+  // Assuming order: [up, down, left, right, diag1, diag2, diag3, diag4]
+  const weights = [3, 3, 3, 3, 1, 1, 1, 1];
+
+  function pickBiasedDirections(directions: number[][]): number[][] {
+    const expanded: number[][] = [];
+    directions.forEach((dir, i) => {
+      for (let j = 0; j < weights[i]; j++) {
+        expanded.push(dir);
+      }
+    });
+    // Shuffle expanded list
+    for (let i = expanded.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [expanded[i], expanded[j]] = [expanded[j], expanded[i]];
+    }
+    return expanded;
+  }
+
+  for (const pos of positions) {
+    if (placedCows >= cowsToFind) break;
+
+    const posKey = `${pos.row},${pos.col}`;
+    if (usedPositions.has(posKey)) continue;
+
+    // Pick directions with bias
+    const biasedDirections = pickBiasedDirections(directions);
+
+    for (const [dRow, dCol] of biasedDirections) {
+      if (canPlaceWord(grid, pos.row, pos.col, dRow, dCol, width, height)) {
+        if (!wouldCreateConflicts(grid, pos.row, pos.col, dRow, dCol, width, height, usedPositions)) {
+          placeWord(grid, pos.row, pos.col, dRow, dCol);
+          placedCows++;
+
+          for (let i = 0; i < 3; i++) {
+            const cowRow = pos.row + (i * dRow);
+            const cowCol = pos.col + (i * dCol);
+            usedPositions.add(`${cowRow},${cowCol}`);
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  return placedCows;
+};
+
+
 const placeCowsWithDirectionVariety = (
   grid: string[][], 
   cowsToFind: number, 
@@ -171,6 +256,52 @@ const placeCowsWithDirectionVariety = (
   return placedCows;
 };
 
+const getBiasedDirection = (): [number, number] => {
+  // More weight to horizontal/vertical than diagonal
+  const biasedDirections: [number, number][] = [
+    [0, 1], [0, -1], [1, 0], [-1, 0],   // horizontal/vertical (strong bias)
+    [1, 1], [-1, -1], [1, -1], [-1, 1], // diagonals (less frequent)
+  ];
+
+  const weights = [3, 3, 3, 3, 1, 1, 1, 1]; // relative probabilities
+  const total = weights.reduce((a, b) => a + b, 0);
+  const rand = Math.floor(Math.random() * total);
+
+  let sum = 0;
+  for (let i = 0; i < biasedDirections.length; i++) {
+    sum += weights[i];
+    if (rand < sum) return biasedDirections[i];
+  }
+
+  return [0, 1]; // fallback (shouldn’t hit)
+};
+
+const placeCowsWithDirectionVarietyBiased = (
+  grid: string[][], 
+  cowsToFind: number, 
+  width: number, 
+  height: number, 
+  directions: number[][],
+  positions: { row: number; col: number }[]
+): number => {
+  let placedCows = 0;
+  
+  for (const pos of positions) {
+    if (placedCows >= cowsToFind) break;
+    
+    // Use biased direction instead of pure random
+    const [dRow, dCol] = getBiasedDirection();
+
+    if (canPlaceWord(grid, pos.row, pos.col, dRow, dCol, width, height)) {
+      placeWord(grid, pos.row, pos.col, dRow, dCol);
+      placedCows++;
+    }
+  }
+  
+  return placedCows;
+};
+
+
 const placeCowsWithConflictAvoidance = (
   grid: string[][], 
   cowsToFind: number, 
@@ -186,7 +317,38 @@ const placeCowsWithConflictAvoidance = (
     
     // Try directions in random order
     const shuffledDirections = [...directions].sort(() => Math.random() - 0.5);
+
+    for (const [dRow, dCol] of shuffledDirections) {
+      if (canPlaceWord(grid, pos.row, pos.col, dRow, dCol, width, height)) {
+        // Check if this placement would create unwanted diagonal COWs
+        if (!wouldCreateDiagonalConflicts(grid, pos.row, pos.col, dRow, dCol, width, height)) {
+          placeWord(grid, pos.row, pos.col, dRow, dCol);
+          placedCows++;
+          break;
+        }
+      }
+    }
+  }
+  
+  return placedCows;
+};
+
+const placeCowsWithConflictAvoidanceBiased = (
+  grid: string[][], 
+  cowsToFind: number, 
+  width: number, 
+  height: number, 
+  directions: number[][],
+  positions: { row: number; col: number }[]
+): number => {
+  let placedCows = 0;
+  
+  for (const pos of positions) {
+    if (placedCows >= cowsToFind) break;
     
+    // Try directions in random order
+    const shuffledDirections = getBiasedDirections(); // [...directions].sort(() => Math.random() - 0.5);
+
     for (const [dRow, dCol] of shuffledDirections) {
       if (canPlaceWord(grid, pos.row, pos.col, dRow, dCol, width, height)) {
         // Check if this placement would create unwanted diagonal COWs

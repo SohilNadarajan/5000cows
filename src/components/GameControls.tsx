@@ -9,6 +9,7 @@ interface GameControlsProps {
   cowsToFind: number;
   onPreviousLevel: () => void;
   onNextLevel: () => void;
+  onRandomLevel: () => void;
   onHint: () => void;
   onReset: () => void;
   isCompleted: boolean;
@@ -21,6 +22,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
   cowsToFind,
   onPreviousLevel,
   onNextLevel,
+  onRandomLevel,
   onHint,
   onReset,
   isCompleted,
@@ -71,7 +73,8 @@ export const GameControls: React.FC<GameControlsProps> = ({
 
       <div className="action-buttons">
         <button onClick={onHint} disabled={isCompleted}>Hint</button>
-        <button onClick={onReset}>Reset Game</button>
+        {/* <button onClick={onReset}>Reset Game</button> */}
+        <button onClick={onRandomLevel}>Random Level</button>
       </div>
     </div>
 
