@@ -38,7 +38,7 @@ export const GamePage: React.FC = () => {
         justifyContent: 'center',
         alignItems: 'center',
         height: '100vh',
-        color: 'white',
+        color: 'black',
         fontSize: '24px',
       }}>
         Loading...
