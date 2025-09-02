@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/5000cows/static/css/main.376b0536.css",
+    "main.js": "/5000cows/static/js/main.4870b0e3.js",
+    "index.html": "/5000cows/index.html",
+    "main.376b0536.css.map": "/5000cows/static/css/main.376b0536.css.map",
+    "main.4870b0e3.js.map": "/5000cows/static/js/main.4870b0e3.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.376b0536.css",
+    "static/js/main.4870b0e3.js"
+  ]
+}
