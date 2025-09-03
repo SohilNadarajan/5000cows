@@ -5,7 +5,7 @@ import { getGridDimensionsForLevel } from './gridSizeCalculator';
 
 export const saveGameState = (gameState: GameState): void => {
   try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
   } catch (error) {
     console.error('Failed to save game state:', error);
   }
@@ -13,7 +13,7 @@ export const saveGameState = (gameState: GameState): void => {
 
 export const loadGameState = (): GameState | null => {
   try {
-    const saved = sessionStorage.getItem(STORAGE_KEY);
+    const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       return JSON.parse(saved);
     }
